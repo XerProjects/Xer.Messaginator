@@ -12,6 +12,11 @@ namespace Xer.Messaginator
         private IMessageSource<TMessage> _internalMessageSource;
 
         /// <summary>
+        /// Message processor name.
+        /// </summary>
+        public abstract string Name { get; }
+
+        /// <summary>
         /// Source where message handler will subscribe to receive messages.
         /// </summary>
         protected abstract IMessageSource<TMessage> MessageSource { get; }
