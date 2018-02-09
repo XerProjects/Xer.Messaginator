@@ -8,6 +8,7 @@ namespace ConsoleApp.Entities
 {
     public class SampleMessageProcessor : MessageProcessor<SampleMessage>
     {
+        public override string Name => "SampleMessageProcessor";
         protected override IMessageSource<SampleMessage> MessageSource { get; }
 
         public SampleMessageProcessor(IMessageSource<SampleMessage> messageSource)
