@@ -7,10 +7,16 @@ namespace Xer.Messaginator
     /// </summary>
     public class MessageContainer<TMessage> where TMessage : class
     {
+        #region Static Declarations
+
         /// <summary>
         /// Empty message container.
         /// </summary>
         public static readonly MessageContainer<TMessage> Empty = new MessageContainer<TMessage>(default(TMessage));
+
+        #endregion Static Declarations
+
+        #region Properties
 
         /// <summary>
         /// Checks if message contains a default value.
@@ -22,6 +28,10 @@ namespace Xer.Messaginator
         /// </summary>
         public TMessage Message { get; }
 
+        #endregion Properties
+
+        #region Constructors
+
         /// <summary>
         /// Constructor.
         /// </summary>
@@ -31,6 +41,10 @@ namespace Xer.Messaginator
             Message = message ?? throw new ArgumentNullException(nameof(message));
         }
 
+        #endregion Constructors
+
+        #region Implicit Operators
+        
         /// <summary>
         /// Implicit conversion from message container to the message.
         /// </summary>
@@ -48,5 +62,7 @@ namespace Xer.Messaginator
         {
             return new MessageContainer<TMessage>(message);
         }
+
+        #endregion Implicit Operators
     }
 }

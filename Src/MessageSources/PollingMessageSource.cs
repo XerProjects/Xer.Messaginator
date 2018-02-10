@@ -118,7 +118,7 @@ namespace Xer.Messaginator.MessageSources
 
         #endregion IMessageSource Implementation
 
-        #region Methods
+        #region Abstract Methods
         
         /// <summary>
         /// Try to get a message from the source.
@@ -126,6 +126,10 @@ namespace Xer.Messaginator.MessageSources
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Message container.</returns>
         protected abstract Task<MessageContainer<TMessage>> TryGetMessageAsync(CancellationToken cancellationToken);
+
+        #endregion Abstract Methods
+
+        #region Protected Methods
 
         /// <summary>
         /// Start polling the source for messages.
@@ -161,7 +165,7 @@ namespace Xer.Messaginator.MessageSources
         {
         }
 
-        #endregion Methods
+        #endregion Protected Methods
 
         #region Functions
         
@@ -207,7 +211,7 @@ namespace Xer.Messaginator.MessageSources
 
         #endregion Functions
 
-        #region Inner Enum
+        #region Nested Enum
         
         protected enum PollingState
         {
@@ -216,6 +220,6 @@ namespace Xer.Messaginator.MessageSources
             Stopped
         }
 
-        #endregion Inner Enum
+        #endregion Nested Enum
     }
 }

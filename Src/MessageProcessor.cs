@@ -6,11 +6,17 @@ namespace Xer.Messaginator
 {
     public abstract class MessageProcessor<TMessage> where TMessage : class
     {
+        #region Declarations
+        
         /// <summary>
-        /// Internally cached message source derived from MessageSource.
+        /// Internally cached message source derived from MessageSourceFactory.
         /// </summary>
         private IMessageSource<TMessage> _internalMessageSource;
 
+        #endregion Declarations
+
+        #region Properties
+        
         /// <summary>
         /// Message processor name.
         /// </summary>
@@ -19,13 +25,38 @@ namespace Xer.Messaginator
         /// <summary>
         /// Source where message handler will subscribe to receive messages.
         /// </summary>
-        protected abstract IMessageSource<TMessage> MessageSource { get; }
+        protected IMessageSource<TMessage> MessageSource
+        {
+            get
+            {
+                if(_internalMessageSource == null)
+                {
+                    // Get an instance provided by child class and store in a private field. 
+                    _internalMessageSource = MessageSourceFactory?.Invoke() ?? throw new InvalidOperationException("Message handler has no message source.");
+                }
+
+                return _internalMessageSource;
+            }
+        }
+
+        /// <summary>
+        /// Factory delegate that returns an instance of <see cref="Xer.Messaginator.IMessageSource{TMessage}"/> when invoked.
+        /// </summary>
+        protected abstract Func<IMessageSource<TMessage>> MessageSourceFactory { get; }
+
+        #endregion Properties
+        
+        #region Events
         
         /// <summary>
         /// Exceptions that occurred during processing are published through this event.
         /// </summary>
         public event EventHandler<Exception> OnError;
 
+        #endregion Events
+
+        #region Methods
+        
         /// <summary>
         /// Start message handler.
         /// </summary>
@@ -34,11 +65,8 @@ namespace Xer.Messaginator
         /// <returns>Completed task.</returns>
         public virtual Task StartAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Get an instance provided by child class and store in a private field. 
-            _internalMessageSource = MessageSource ?? throw new InvalidOperationException("Message handler has no message source.");
-
             // Subscribe to messages.
-            _internalMessageSource.MessageReceived += (receivedMessage) =>
+            MessageSource.MessageReceived += (receivedMessage) =>
             {
                 // Do not process if null or empty.
                 if (receivedMessage != null && !receivedMessage.IsEmpty)
@@ -56,11 +84,11 @@ namespace Xer.Messaginator
             };
 
             // Subscribe to errors.
-            _internalMessageSource.OnError += (s, ex) => publishException(ex);
+            MessageSource.OnError += (s, ex) => publishException(ex);
 
             OnStart();
 
-            _internalMessageSource.StartReceivingAsync(cancellationToken);
+            MessageSource.StartReceivingAsync(cancellationToken);
 
             return TaskUtility.CompletedTask;
         }
@@ -74,8 +102,12 @@ namespace Xer.Messaginator
         {
             OnStop();
 
-            return _internalMessageSource.StopReceivingAsync(cancellationToken);
+            return MessageSource.StopReceivingAsync(cancellationToken);
         }
+
+        #endregion Methods
+
+        #region Abstract Methods
 
         /// <summary>
         /// Process message asynchronously.
@@ -89,6 +121,10 @@ namespace Xer.Messaginator
         /// <param name="cancellationToken">Cancellation token. This is cancelled when hosted command handler is stopped.</param>
         /// <returns>Task which can be awaited for completion.</returns>
         protected abstract Task ProcessMessageAsync(MessageContainer<TMessage> receivedMessage, CancellationToken cancellationToken);
+
+        #endregion Abstract Methods
+
+        #region Protected Methods
 
         /// <summary>
         /// Hook that is executed before message handler is started.
@@ -104,6 +140,10 @@ namespace Xer.Messaginator
         {
         }
 
+        #endregion Protected Methods
+
+        #region Functions
+
         /// <summary>
         /// Publish exception.
         /// </summary>
@@ -115,5 +155,7 @@ namespace Xer.Messaginator
                 OnError(this, ex);
             }
         }
+
+        #endregion Functions
     }
 }

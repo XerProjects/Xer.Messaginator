@@ -9,11 +9,12 @@ namespace ConsoleApp.Entities
     public class SampleMessageProcessor : MessageProcessor<SampleMessage>
     {
         public override string Name => "SampleMessageProcessor";
-        protected override IMessageSource<SampleMessage> MessageSource { get; }
+
+        protected override Func<IMessageSource<SampleMessage>> MessageSourceFactory { get; }
 
         public SampleMessageProcessor(IMessageSource<SampleMessage> messageSource)
         {
-            MessageSource = messageSource;
+            MessageSourceFactory = () => messageSource;
         }
 
         protected override Task ProcessMessageAsync(MessageContainer<SampleMessage> receivedMessage, CancellationToken cancellationToken)

@@ -11,6 +11,8 @@ namespace Xer.Messaginator
     /// </summary>
     public interface IMessageSource<TMessage> where TMessage : class
     {   
+        #region Events
+
         /// <summary>
         /// Received messages are published through this event.
         /// </summary>
@@ -25,6 +27,10 @@ namespace Xer.Messaginator
         /// </summary>
         event EventHandler<Exception> OnError;
 
+        #endregion Events
+
+        #region Methods
+        
         /// <summary>
         /// Start receiving messages from the source.
         /// </summary>
@@ -45,5 +51,7 @@ namespace Xer.Messaginator
         /// <param name="message">Message to receive.</param>
         /// <returns>Task which can be awaited for completion.</returns>
         Task ReceiveAsync(MessageContainer<TMessage> message);
+
+        #endregion Methods
     }    
 }
