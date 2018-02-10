@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>Xer.Messaginator</id>
+    <version>0.1.0</version>
+    <title>Xer.Messaginator</title>
+    <authors>jeyjeyemem</authors>
+    <owners>jeyjeyemem</owners>
+    <licenseUrl>https://github.com/jeyjeyemem/Xer.Messaginator/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jeyjeyemem/Xer.Messaginator</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A simple message processing library that can support various source of messages.</description>
+    <summary>A simple message processing library that can support various source of messages.</summary>
+    <releaseNotes>
+      - Initial release
+    </releaseNotes>
+    <copyright>Copyright 2017</copyright>
+    <tags>Message Processing Library</tags>
+  </metadata>
+  <files>
+    <file src="bin\Release\netstandard1.0\*.dll" target="lib\netstandard1.0" />
+  </files>
+</package>
