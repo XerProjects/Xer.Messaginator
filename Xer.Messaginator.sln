@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xer.Messaginator", "Src\Xer.Messaginator.csproj", "{890F23F5-0AB6-42B6-BC3C-6DF4BFA2602C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Xer.Messaginator", "Src\Xer.Messaginator\Xer.Messaginator.csproj", "{890F23F5-0AB6-42B6-BC3C-6DF4BFA2602C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{87A344DE-372A-44C0-AD2C-60791318A0CE}"
 EndProject
