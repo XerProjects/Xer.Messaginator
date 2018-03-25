@@ -7,11 +7,9 @@ namespace Xer.Messaginator
     public abstract class MessageProcessor<TMessage> where TMessage : class
     {
         #region Declarations
-        
-        /// <summary>
-        /// Internally cached message source derived from MessageSourceFactory.
-        /// </summary>
-        private IMessageSource<TMessage> _internalMessageSource;
+
+        private MessageProcessorHost _host;
+        private CancellationToken _cancellationToken;
 
         #endregion Declarations
 
@@ -25,35 +23,33 @@ namespace Xer.Messaginator
         /// <summary>
         /// Source where message handler will subscribe to receive messages.
         /// </summary>
-        protected IMessageSource<TMessage> MessageSource
-        {
-            get
-            {
-                if(_internalMessageSource == null)
-                {
-                    // Get an instance provided by child class and store in a private field. 
-                    _internalMessageSource = MessageSourceFactory?.Invoke() ?? throw new InvalidOperationException("Message handler has no message source.");
-                }
-
-                return _internalMessageSource;
-            }
-        }
-
-        /// <summary>
-        /// Factory delegate that returns an instance of <see cref="Xer.Messaginator.IMessageSource{TMessage}"/> when invoked.
-        /// </summary>
-        protected abstract Func<IMessageSource<TMessage>> MessageSourceFactory { get; }
+        protected IMessageSource<TMessage> MessageSource { get; }
 
         #endregion Properties
-        
+
         #region Events
-        
+
         /// <summary>
         /// Exceptions that occurred during processing are published through this event.
         /// </summary>
         public event EventHandler<Exception> OnError;
 
         #endregion Events
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="messageSource">Message processor's source of messages.</param>
+        public MessageProcessor(IMessageSource<TMessage> messageSource)
+        {
+            MessageSource = messageSource ?? throw new ArgumentNullException(nameof(messageSource));
+            
+            // Subscribe to messages.
+            MessageSource.OnMessageReceived += (receivedMessage) => OnMessageReceived(receivedMessage);
+
+            // Subscribe to errors.
+            MessageSource.OnError += (s, ex) => PublishException(ex);
+        }
 
         #region Methods
         
@@ -65,28 +61,43 @@ namespace Xer.Messaginator
         /// <returns>Completed task.</returns>
         public virtual Task StartAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            // Subscribe to messages.
-            MessageSource.MessageReceived += (receivedMessage) =>
+            _cancellationToken = cancellationToken;
+
+            try
             {
-                // Do not process if null or empty.
-                if (receivedMessage != null && !receivedMessage.IsEmpty)
-                {
-                    // Process message. This is not awaited.
-                    ProcessMessageAsync(receivedMessage, cancellationToken)
-                        // Publish exception and return true to let framework know that exception was handled.
-                        .ContinueWith(t => t.Exception.Handle(ex =>
-                        {
-                            publishException(ex); return true;
-                        }), TaskContinuationOptions.OnlyOnFaulted);
-                }
+                OnStart();
+            }
+            catch(Exception ex)
+            {
+                return TaskUtility.FromException(ex);
+            }
 
-                return TaskUtility.CompletedTask;
-            };
+            MessageSource.StartReceivingAsync(cancellationToken);
 
-            // Subscribe to errors.
-            MessageSource.OnError += (s, ex) => publishException(ex);
+            return TaskUtility.CompletedTask;
+        }
+             
+        /// <summary>
+        /// Start message handler with message processor host.
+        /// </summary>
+        /// <remarks>This method returns an already completed task and should not block.</remarks>
+        /// <param name="host">Message processor host that will host this message processor.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Completed task.</returns>
+        public virtual Task StartAsync(MessageProcessorHost host, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            _host = host ?? throw new ArgumentNullException(nameof(host));
 
-            OnStart();
+            _cancellationToken = cancellationToken;
+
+            try
+            {
+                OnStart();
+            }
+            catch(Exception ex)
+            {
+                return TaskUtility.FromException(ex);
+            }
 
             MessageSource.StartReceivingAsync(cancellationToken);
 
@@ -100,9 +111,27 @@ namespace Xer.Messaginator
         /// <returns>Task which can be awaited until the last received message has finished processing.</returns>
         public virtual Task StopAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
-            OnStop();
+            try
+            {
+                OnStop();
+            }
+            catch(Exception ex)
+            {
+                return TaskUtility.FromException(ex);
+            }
 
             return MessageSource.StopReceivingAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Receive a message in-process and schedule for processing.
+        /// </summary>
+        /// <param name="message">Message to receive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task which can be awaited for completion.</returns>
+        public Task ReceiveMessageAsync(MessageContainer<TMessage> message, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return MessageSource.ReceiveAsync(message, cancellationToken);
         }
 
         #endregion Methods
@@ -127,6 +156,18 @@ namespace Xer.Messaginator
         #region Protected Methods
 
         /// <summary>
+        /// Forward message to another message processor inside the message processor host, if available.
+        /// </summary>
+        /// <param name="messageProcessorName">Name of next message processor.</param>
+        /// <param name="messageToForward">Message to forward.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Task which can be awaited for completion.</returns>
+        protected Task ForwardToMessageProcessor(string messageProcessorName, TMessage messageToForward, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return _host?.ForwardMessageAsync<TMessage>(messageProcessorName, new MessageContainer<TMessage>(messageToForward));
+        }
+
+        /// <summary>
         /// Hook that is executed before message handler is started.
         /// </summary>
         protected virtual void OnStart()
@@ -142,13 +183,36 @@ namespace Xer.Messaginator
 
         #endregion Protected Methods
 
-        #region Functions
+        #region Functions       
+
+        /// <summary>
+        /// Handle message that is received through <see cref="IMessageSource{TMessage}"/>.
+        /// </summary>
+        /// <param name="receivedMessage">Received message.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Asynchronous task that can be awaited for completion.</returns>
+        private async Task OnMessageReceived(MessageContainer<TMessage> receivedMessage)
+        {
+            // Do not process if null or empty.
+            if (receivedMessage != null && !receivedMessage.IsEmpty)
+            {
+                try
+                {
+                    // Process message.
+                    await ProcessMessageAsync(receivedMessage, _cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    PublishException(ex);
+                }
+            }
+        }
 
         /// <summary>
         /// Publish exception.
         /// </summary>
         /// <param name="ex">Exception to publish.</param>
-        private void publishException(Exception ex)
+        private void PublishException(Exception ex)
         {
             if (OnError != null)
             {

@@ -29,12 +29,12 @@ namespace ConsoleApp
             // Will not block.
             await messageProcessor.StartAsync();
 
-            while(true)
+            while (true)
             {
                 Console.WriteLine("Enter number of messages to queue:");
                 string input = Console.ReadLine();
 
-                if(string.Equals(input, "stop", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(input, "stop", StringComparison.OrdinalIgnoreCase))
                 {
                     Console.WriteLine("Stopping...");
                     // Wait till last message is finished.
@@ -42,7 +42,7 @@ namespace ConsoleApp
                     break;
                 }
 
-                if(int.TryParse(input, out int num))
+                if (int.TryParse(input, out int num))
                 {
                     for(int i = 0; i < num; i++)
                     {

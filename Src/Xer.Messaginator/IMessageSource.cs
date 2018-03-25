@@ -20,7 +20,7 @@ namespace Xer.Messaginator
         /// It is recommended that subscribers of event handler should not 
         /// let any exceptions propagate because it may not be observed.
         /// </remarks>
-        event MessageReceivedDelegate<TMessage> MessageReceived;
+        event MessageReceivedDelegate<TMessage> OnMessageReceived;
 
         /// <summary>
         /// Exceptions that occurred while receiving messages are published through this event.
@@ -49,8 +49,9 @@ namespace Xer.Messaginator
         /// Receive a message in-process and schedule for processing.
         /// </summary>
         /// <param name="message">Message to receive.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task which can be awaited for completion.</returns>
-        Task ReceiveAsync(MessageContainer<TMessage> message);
+        Task ReceiveAsync(MessageContainer<TMessage> message, CancellationToken cancellationToken = default(CancellationToken));
 
         #endregion Methods
     }    

@@ -3,7 +3,7 @@ using System;
 namespace Xer.Messaginator
 {
     /// <summary>
-    /// Contains the message.
+    /// Represents a container of message.
     /// </summary>
     public class MessageContainer<TMessage> where TMessage : class
     {
@@ -28,6 +28,8 @@ namespace Xer.Messaginator
         /// </summary>
         public TMessage Message { get; }
 
+        public MessageProperties Properties { get; }
+
         #endregion Properties
 
         #region Constructors
@@ -37,8 +39,19 @@ namespace Xer.Messaginator
         /// </summary>
         /// <param name="message">Message to contain.</param>
         public MessageContainer(TMessage message)
+            : this(message, MessageProperties.Empty)
+        {
+        }
+
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="message">Message to contain.</param>
+        /// <param name="properties">Message properties.</param>
+        public MessageContainer(TMessage message, MessageProperties properties)
         {
             Message = message ?? throw new ArgumentNullException(nameof(message));
+            Properties = properties ?? throw new ArgumentNullException(nameof(properties));
         }
 
         #endregion Constructors
@@ -52,15 +65,6 @@ namespace Xer.Messaginator
         public static implicit operator TMessage(MessageContainer<TMessage> messageContainer)
         {
             return messageContainer?.Message;
-        }
-
-        /// <summary>
-        /// Implicit conversion from message to a new instance of a message container.
-        /// </summary>
-        /// <param name="message">Message that the container will hold.</param>
-        public static implicit operator MessageContainer<TMessage>(TMessage message)
-        {
-            return new MessageContainer<TMessage>(message);
         }
 
         #endregion Implicit Operators

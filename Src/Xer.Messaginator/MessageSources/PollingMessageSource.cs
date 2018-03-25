@@ -7,7 +7,7 @@ namespace Xer.Messaginator.MessageSources
     /// <summary>
     /// Represents a source of message that does some polling to wait for any messages.
     /// </summary>
-    public abstract class PollingMessageSource<TMessage> : IMessageSource<TMessage> where TMessage : class
+    public abstract class PollingMessageSource<TMessage> : MessageSource<TMessage> where TMessage : class
     {
         #region Declarations
         
@@ -35,38 +35,27 @@ namespace Xer.Messaginator.MessageSources
 
         #endregion Properties
 
-        #region Events
-        
-        /// <summary>
-        /// Received messages are published through this event.
-        /// </summary>
-        /// <remarks>
-        /// It is recommended that subscribers of event handler should not 
-        /// let any exceptions propagate because it may not be observed.
-        /// </remarks>
-        public event MessageReceivedDelegate<TMessage> MessageReceived;
-
-        /// <summary>
-        /// Exceptions that occurred while receiving messages are published through this event.
-        /// </summary>
-        public event EventHandler<Exception> OnError;
-
-        #endregion Events
-
         #region IMessageSource Implementation
         
         /// <summary>
-        /// Start receiving messages from the source.
+        /// Start receiving messages from the source. This does not block.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Completed task.</returns>
-        public Task StartReceivingAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public override Task StartReceivingAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             if (State != PollingState.Started)
             { 
                 State = PollingState.Started;
-
-                OnStart();
+                
+                try
+                {
+                    OnStart();
+                }
+                catch(Exception ex)
+                {
+                    return TaskUtility.FromException(ex);
+                }
 
                 _receiveCancellationToken = cancellationToken;
                 _pollingTask = StartPollingAsync(cancellationToken);
@@ -76,21 +65,25 @@ namespace Xer.Messaginator.MessageSources
         }
 
         /// <summary>
-        /// Stop receiving messages from the source.
+        /// Stop receiving messages from the source. This will block until last received message has finished processing.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task which can be awaited until the last received message has finished processing.</returns>
-        public Task StopReceivingAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public override Task StopReceivingAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             // Only change to Stopped state if message source has been started.
             if (State == PollingState.Started)
             {
                 State = PollingState.Stopped;
 
-                OnStop();
-
-                // Remove all subscriptions.
-                MessageReceived = null;
+                try
+                {
+                    OnStop();
+                }
+                catch(Exception ex)
+                {
+                    return TaskUtility.FromException(ex);
+                }
             }
                         
             // Return polling task so that caller can await
@@ -103,7 +96,7 @@ namespace Xer.Messaginator.MessageSources
         /// </summary>
         /// <param name="message">Message to receive.</param>
         /// <returns>Task which can be awaited for completion.</returns>
-        public Task ReceiveAsync(MessageContainer<TMessage> message)
+        public override Task ReceiveAsync(MessageContainer<TMessage> message, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (message == null)
             {
@@ -111,8 +104,7 @@ namespace Xer.Messaginator.MessageSources
             }
 
             // Publish manually received command.
-            publishMessage(message);
-            
+            PublishMessage(message);
             return TaskUtility.CompletedTask;
         }
 
@@ -125,7 +117,7 @@ namespace Xer.Messaginator.MessageSources
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Message container.</returns>
-        protected abstract Task<MessageContainer<TMessage>> TryGetMessageAsync(CancellationToken cancellationToken);
+        protected abstract Task<MessageContainer<TMessage>> GetNextMessageAsync(CancellationToken cancellationToken);
 
         #endregion Abstract Methods
 
@@ -141,7 +133,7 @@ namespace Xer.Messaginator.MessageSources
             while (!IsTimeToStop && !cancellationToken.IsCancellationRequested)
             {
                 // Not awaited. Store so that compiler won't complain.
-                Task getAndPublishTask = tryGetAndPublishMessageAsync(cancellationToken);
+                Task task = ProcessNextMessage(cancellationToken);
 
                 if (!IsTimeToStop && !cancellationToken.IsCancellationRequested)
                 {
@@ -174,38 +166,19 @@ namespace Xer.Messaginator.MessageSources
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Asynchronous task that can be awaited for completion.</returns>
-        private async Task tryGetAndPublishMessageAsync(CancellationToken cancellationToken)
+        private async Task ProcessNextMessage(CancellationToken cancellationToken)
         {
-            // Asynchronously wait until a message is received.
-            MessageContainer<TMessage> receivedMessage = await TryGetMessageAsync(cancellationToken).ConfigureAwait(false);
-            if (receivedMessage != null && !receivedMessage.IsEmpty)
+            try
             {
-                publishMessage(receivedMessage);
-            }
-        }
+                // Asynchronously wait until a message is received.
+                MessageContainer<TMessage> receivedMessage = await GetNextMessageAsync(cancellationToken).ConfigureAwait(false);
 
-        /// <summary>
-        /// Publish received message.
-        /// </summary>
-        /// <param name="receivedMessage">Received message.</param>
-        private void publishMessage(MessageContainer<TMessage> receivedMessage)
-        {
-            if(MessageReceived != null)
-            {
-                // THis is not awaited.
-                MessageReceived(receivedMessage);
+                // Publish message. This checks for nulls/empty message containers.
+                PublishMessage(receivedMessage);
             }
-        }
-
-        /// <summary>
-        /// Publish received message.
-        /// </summary>
-        /// <param name="receivedMessage">Received message.</param>
-        private void publishException(Exception exception)
-        {
-            if(OnError != null)
+            catch(Exception ex)
             {
-                OnError(this, exception);
+                PublishException(ex);
             }
         }
 
