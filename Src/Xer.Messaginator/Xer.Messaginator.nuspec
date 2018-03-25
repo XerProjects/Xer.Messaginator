@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>Xer.Messaginator</id>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
     <title>Xer.Messaginator</title>
     <authors>jeyjeyemem</authors>
     <owners>jeyjeyemem</owners>
@@ -12,8 +12,9 @@
     <description>A simple message processing library that can support various source of messages.</description>
     <summary>A simple message processing library that can support various source of messages.</summary>
     <releaseNotes>
-      - Introduced MessageSourceFactory to MessageProcessor
-      - Added regions to classes
+      - Introduced MessageProcessorHost.
+      - Added MessageProperties.
+      - Added QueuePollingMessageSource.
     </releaseNotes>
     <copyright>Copyright 2017</copyright>
     <tags>Message Processing Library</tags>

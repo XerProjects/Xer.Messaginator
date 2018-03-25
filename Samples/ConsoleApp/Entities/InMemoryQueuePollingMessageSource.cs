@@ -4,30 +4,27 @@ using System.Threading;
 using System.Threading.Tasks;
 using Xer.Messaginator;
 using Xer.Messaginator.MessageSources;
+using Xer.Messaginator.MessageSources.Queue;
 
 namespace ConsoleApp.Entities
 {
-    public class InMemoryQueuePollingMessageSource : PollingMessageSource<SampleMessage>
+    public class InMemoryQueuePollingMessageSource : QueuePollingMessageSource<SampleMessage>
     {
-        private readonly Queue<SampleMessage> _queue;
-
         protected override TimeSpan PollingInterval { get; }
 
         public InMemoryQueuePollingMessageSource(Queue<SampleMessage> queue, TimeSpan pollingInterval)
+            : base(new InMemoryQueueAdapter(queue))
         {
-            _queue = queue;
             PollingInterval = pollingInterval;
         }
 
-        protected override Task<MessageContainer<SampleMessage>> TryGetMessageAsync(CancellationToken cancellationToken)
+        protected override async Task<MessageContainer<SampleMessage>> GetNextMessageAsync(CancellationToken cancellationToken)
         {
-            if(_queue.TryDequeue(out SampleMessage message))
-            {
-                System.Console.WriteLine($"Message {message.Id}: Received by {GetType().Name}.");
-                return Task.FromResult(new MessageContainer<SampleMessage>(message));
-            }
+            MessageContainer<SampleMessage> message = await base.GetNextMessageAsync(cancellationToken);
 
-            return Task.FromResult(MessageContainer<SampleMessage>.Empty);
+            System.Console.WriteLine($"Message {message.Message.Id}: Received by {GetType().Name}.");
+
+            return message;
         }
     }
 }
