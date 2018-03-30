@@ -2,10 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.0</TargetFramework>
+    <Authors>XerProjects contributors</Authors>
+    <Description>A simple message processing library that can support various source of messages.</Description>
+    <Copyright>Copyright (c) XerProjects contributors</Copyright>
+    <PackageLicenseUrl>https://github.com/XerProjects/Xer.Messaginator/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/XerProjects/Xer.Messaginator</PackageProjectUrl>
+    <PackageTags>messaging;message;processing;library;</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Xer.Delegator" Version="0.4.0" />
+    <PackageReference Include="Xer.Delegator" Version="1.0.0" />
   </ItemGroup>
 
 </Project>
