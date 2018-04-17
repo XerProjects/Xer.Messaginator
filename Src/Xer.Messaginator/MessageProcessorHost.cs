@@ -21,31 +21,6 @@ namespace Xer.Messaginator
         {
             _messageDelegator = messageDelegator;
         }
-
-        /// <summary>
-        /// Forward message to a message processor.
-        /// </summary>
-        /// <param name="messageProcessorName">Name of message processor.</param>
-        /// <param name="messageToForward">Message to forward.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Asynchronous task that completes when the message has been forwarded.</returns>
-        public Task ForwardMessageAsync<TMessage>(string messageProcessorName, 
-                                                  MessageContainer<TMessage> messageToForward, 
-                                                  CancellationToken cancellationToken = default(CancellationToken)) where TMessage : class
-        {
-            if (messageProcessorName == null)
-            {
-                throw new ArgumentNullException(nameof(messageProcessorName));
-            }
-
-            if (messageToForward == null)
-            {
-                throw new ArgumentNullException(nameof(messageToForward));
-            }
-
-            return _messageDelegator.SendAsync(new ForwardToMessageProcessorMessage<TMessage>(messageProcessorName, messageToForward), 
-                                               cancellationToken);
-        }
         
         /// <summary>
         /// Start message processing.
@@ -65,6 +40,71 @@ namespace Xer.Messaginator
         public Task StopAsync(CancellationToken cancellationToken = default(CancellationToken))
         {
             return _messageDelegator.SendAsync(new StopMessageProcessingMessage(this), cancellationToken);
+        }
+
+        /// <summary>
+        /// Create an implementation of <see cref="Xer.Messaginator.IMessageForwarder"/>
+        /// that can forward messages among message processors in this host.
+        /// </summary>
+        /// <returns>Implementation of <see cref="Xer.Messaginator.IMessageForwarder"/>.</returns>
+        public IMessageForwarder CreateMessageForwarder()
+        {
+            return new MessageProcessorHostForwarder(this);
+        }
+
+        /// <summary>
+        /// Forward message to a message processor.
+        /// </summary>
+        /// <param name="recipientMessageProcessorName">Name of message processor to forward to.</param>
+        /// <param name="messageToForward">Message to forward.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Asynchronous task that completes when the message has been forwarded.</returns>
+        private Task ForwardToMessageProcessorAsync<TMessage>(string recipientMessageProcessorName, 
+                                                              MessageContainer<TMessage> messageToForward, 
+                                                              CancellationToken cancellationToken = default(CancellationToken)) where TMessage : class
+        {
+            if (string.IsNullOrEmpty(recipientMessageProcessorName))
+            {
+                throw new ArgumentException("No recipient message processor name is provided.", nameof(recipientMessageProcessorName));
+            }
+
+            if (messageToForward == null)
+            {
+                throw new ArgumentNullException(nameof(messageToForward));
+            }
+
+            return _messageDelegator.SendAsync(new ForwardToMessageProcessorMessage<TMessage>(recipientMessageProcessorName, messageToForward), 
+                                               cancellationToken);
+        }
+
+        /// <summary>
+        /// Represents an object that can forward messages among message processors in a message processor host.
+        /// </summary>
+        private class MessageProcessorHostForwarder : IMessageForwarder
+        {
+            private readonly MessageProcessorHost _messageProcessorHost;
+
+            /// <summary>
+            /// Constructor.
+            /// </summary>
+            /// <param name="messageProcessorHost">Message processor host.</param>
+            public MessageProcessorHostForwarder(MessageProcessorHost messageProcessorHost)
+            {
+                _messageProcessorHost = messageProcessorHost;
+            }
+
+            /// <summary>
+            /// Forward message to a message processor.
+            /// </summary>
+            /// <typeparam name="TMessage">Type of message to forward.</typeparam>
+            /// <param name="recipientMessageProcessorName">Name of message processor to forward to.</param>
+            /// <param name="messageToForward">Message to forward.</param>
+            /// <param name="cancellationToken">Cancellation token.</param>
+            /// <returns>Task which can be awaited for completion.</returns>
+            public Task ForwardMessageAsync<TMessage>(string recipientMessageProcessorName, MessageContainer<TMessage> messageToForward, CancellationToken cancellationToken = default(CancellationToken)) where TMessage : class
+            {
+                return _messageProcessorHost.ForwardToMessageProcessorAsync(recipientMessageProcessorName, messageToForward, cancellationToken);
+            }
         }
     }
 }

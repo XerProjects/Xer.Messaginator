@@ -5,7 +5,7 @@ namespace Xer.Messaginator
         /// <summary>
         /// Name of message processor to forward to.
         /// </summary>
-        public string MessageProcessorName { get; }
+        public string RecipientMessageProcessorName { get; }
 
         /// <summary>
         /// Message to forward.
@@ -15,11 +15,11 @@ namespace Xer.Messaginator
         /// <summary>
         /// Constructor.
         /// </summary>
-        /// <param name="messageProcessorNameToForwardTo">Name of message processor to forward to.</param>
+        /// <param name="recipientMessageProcessorName">Name of message processor to forward to.</param>
         /// <param name="messageToForward">Message to forward.</param>
-        public ForwardToMessageProcessorMessage(string messageProcessorNameToForwardTo, MessageContainer<TMessage> messageToForward) 
+        public ForwardToMessageProcessorMessage(string recipientMessageProcessorName, MessageContainer<TMessage> messageToForward) 
         {
-            MessageProcessorName = messageProcessorNameToForwardTo ?? throw new System.ArgumentNullException(nameof(messageProcessorNameToForwardTo));
+            RecipientMessageProcessorName = recipientMessageProcessorName ?? throw new System.ArgumentNullException(nameof(recipientMessageProcessorName));
             MessageToForward = messageToForward ?? throw new System.ArgumentNullException(nameof(messageToForward));
         }
     }
