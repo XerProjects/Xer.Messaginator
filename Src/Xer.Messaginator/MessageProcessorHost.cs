@@ -63,16 +63,6 @@ namespace Xer.Messaginator
                                                               MessageContainer<TMessage> messageToForward, 
                                                               CancellationToken cancellationToken = default(CancellationToken)) where TMessage : class
         {
-            if (string.IsNullOrEmpty(recipientMessageProcessorName))
-            {
-                throw new ArgumentException("No recipient message processor name is provided.", nameof(recipientMessageProcessorName));
-            }
-
-            if (messageToForward == null)
-            {
-                throw new ArgumentNullException(nameof(messageToForward));
-            }
-
             return _messageDelegator.SendAsync(new ForwardToMessageProcessorMessage<TMessage>(recipientMessageProcessorName, messageToForward), 
                                                cancellationToken);
         }
