@@ -8,7 +8,6 @@ namespace Xer.Messaginator
     {
         #region Declarations
 
-        private MessageProcessorHost _host;
         private CancellationToken _cancellationToken;
 
         #endregion Declarations
@@ -76,33 +75,6 @@ namespace Xer.Messaginator
 
             return TaskUtility.CompletedTask;
         }
-             
-        /// <summary>
-        /// Start message handler with message processor host.
-        /// </summary>
-        /// <remarks>This method returns an already completed task and should not block.</remarks>
-        /// <param name="host">Message processor host that will host this message processor.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Completed task.</returns>
-        public virtual Task StartAsync(MessageProcessorHost host, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            _host = host ?? throw new ArgumentNullException(nameof(host));
-
-            _cancellationToken = cancellationToken;
-
-            try
-            {
-                OnStart();
-            }
-            catch(Exception ex)
-            {
-                return TaskUtility.FromException(ex);
-            }
-
-            MessageSource.StartReceivingAsync(cancellationToken);
-
-            return TaskUtility.CompletedTask;
-        }
 
         /// <summary>
         /// Stop message handler.
@@ -154,18 +126,6 @@ namespace Xer.Messaginator
         #endregion Abstract Methods
 
         #region Protected Methods
-
-        /// <summary>
-        /// Forward message to another message processor inside the message processor host, if available.
-        /// </summary>
-        /// <param name="messageProcessorName">Name of next message processor.</param>
-        /// <param name="messageToForward">Message to forward.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Task which can be awaited for completion.</returns>
-        protected Task ForwardToMessageProcessor(string messageProcessorName, TMessage messageToForward, CancellationToken cancellationToken = default(CancellationToken))
-        {
-            return _host?.ForwardMessageAsync<TMessage>(messageProcessorName, new MessageContainer<TMessage>(messageToForward));
-        }
 
         /// <summary>
         /// Hook that is executed before message handler is started.

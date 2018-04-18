@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Xer.Delegator;
 using Xer.Delegator.Registration;
@@ -20,16 +21,32 @@ namespace Xer.Messaginator
         {
             if (messageProcessor == null)
             {
-                throw new System.ArgumentNullException(nameof(messageProcessor));
+                throw new ArgumentNullException(nameof(messageProcessor));
             }
 
             // Hook to internal messages.
-            _registration.Register<StartMessageProcessingMessage>((message, ct) => messageProcessor.StartAsync(message.MessageProcessorHost, ct));
+
+            // Start the message processor if StartMessageProcessingMessage is received.
+            _registration.Register<StartMessageProcessingMessage>((message, ct) => 
+            {
+                if (messageProcessor is ISupportMessageForwarding mp)
+                {
+                    // Set message forwarder if supported.
+                    mp.SetMessageForwarder(message.MessageProcessorHost.CreateMessageForwarder());
+                }
+
+                return messageProcessor.StartAsync(ct);
+            });
+
+            // Stop the message processor if StopMessageProcessingMessage is received.
             _registration.Register<StopMessageProcessingMessage>((message, ct) => messageProcessor.StopAsync(ct));
+
+            // Receive message if ForwardToMessageProcessorMessage<TMessage> is received
+            // and the receiving message processor name matches the message processor's name.
             _registration.Register<ForwardToMessageProcessorMessage<TMessage>>((message, ct) => 
             {
                 // Receive if message if it is meant for this message processor.
-                if (messageProcessor.Name == message.MessageProcessorName)
+                if (message.RecipientMessageProcessorName == messageProcessor.Name)
                 {
                     return messageProcessor.ReceiveMessageAsync(message.MessageToForward, ct);
                 }
