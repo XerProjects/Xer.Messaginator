@@ -324,6 +324,6 @@ public class BuildParameters
 
     public bool ShouldPublishNuGet => !string.IsNullOrWhiteSpace(NuGetApiKey) 
         && !string.IsNullOrWhiteSpace(NuGetFeed)
-        && (IsMasterBranch || IsHotFixBranch)
+        && (IsMasterBranch || IsHotFixBranch || IsReleaseBranch)
         && !IsPullRequest;
 }
