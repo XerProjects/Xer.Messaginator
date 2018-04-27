@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace Xer.Messaginator.Tests.Entities
 {
-    public class TestMessageProcessor1 : MessageProcessor<TestMessage>
+    public class TestMessageProcessor1 : MessageProcessor<TestMessage>, ISupportMessageForwarding
     {
+        private IMessageForwarder _messageForwarder;
         private List<TestMessage> _messages = new List<TestMessage>();
 
         public override string Name => GetType().Name;
@@ -20,17 +21,23 @@ namespace Xer.Messaginator.Tests.Entities
         protected override Task ProcessMessageAsync(MessageContainer<TestMessage> receivedMessage, CancellationToken cancellationToken)
         {
             // Pass to TestMessageProcessor2.
-            return ForwardToMessageProcessor("TestMessageProcessor2", receivedMessage, cancellationToken);
+            return _messageForwarder.ForwardMessageAsync("TestMessageProcessor2", receivedMessage, cancellationToken);
         }
 
         public bool IsHoldingMessage(Guid messageId)
         {
             return _messages.Any(m => m.MessageId == messageId);
         }
+
+        public void SetMessageForwarder(IMessageForwarder messageForwarder)
+        {
+            _messageForwarder = messageForwarder;
+        }
     }
 
-    public class TestMessageProcessor2 : MessageProcessor<TestMessage>
+    public class TestMessageProcessor2 : MessageProcessor<TestMessage>, ISupportMessageForwarding
     {
+        private IMessageForwarder _messageForwarder;
         private List<TestMessage> _messages = new List<TestMessage>();
 
         public override string Name => GetType().Name;
@@ -43,12 +50,17 @@ namespace Xer.Messaginator.Tests.Entities
         protected override Task ProcessMessageAsync(MessageContainer<TestMessage> receivedMessage, CancellationToken cancellationToken)
         {
             // Pass to TestMessageProcessor3.
-            return ForwardToMessageProcessor("TestMessageProcessor3", receivedMessage, cancellationToken);
+            return _messageForwarder.ForwardMessageAsync("TestMessageProcessor3", receivedMessage, cancellationToken);
         }
 
         public bool IsHoldingMessage(Guid messageId)
         {
             return _messages.Any(m => m.MessageId == messageId);
+        }
+
+        public void SetMessageForwarder(IMessageForwarder messageForwarder)
+        {
+            _messageForwarder = messageForwarder;
         }
     }
 
